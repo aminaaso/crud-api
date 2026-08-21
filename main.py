@@ -3,13 +3,33 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional
 
+import sqlite3
+def lifespan(app):
+    """Creates the tasks table if missing, and seeds 3 example tasks only if the table is empty."""
+    conn = sqlite3.connect("tasks.db")
+    cur = conn.cursor()
+    cur.execute("CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY, title TEXT, done INTEGER)")
+    cur.execute("SELECT COUNT(*) FROM tasks")
+    count = cur.fetchone()[0]
+    if count == 0:
+        cur.execute("INSERT INTO tasks (title, done) VALUES (?, ?)", ("Buy milk", 0))
+        cur.execute("INSERT INTO tasks (title, done) VALUES (?, ?)", ("Walk the Dog", 0))
+        cur.execute("INSERT INTO tasks (title, done) VALUES (?, ?)", ("Write code", 1))
+    conn.commit()
+    conn.close()
+    yield
+
+def get_connection():
+    conn = sqlite3.connect("tasks.db")
+    return conn
+
 class TaskUpdate(BaseModel):
     title: Optional[str] = None
     done: Optional[bool] = None
 
 class TaskCreate(BaseModel):
     title:str
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 tasks = [
     {"id": 1, "title": "Buy milk", "done": False},
