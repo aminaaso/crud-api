@@ -51,15 +51,29 @@ def health():
 @app.get("/tasks")
 def get_tasks(): #list tasks
     """Return the full list of tasks."""
-    return tasks
+    conn = get_connection()   
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM tasks")
+    rows = cur.fetchall()
+    result = []
+    for row in rows:      
+        task_dict = {"id": row[0], "title": row[1], "done": bool(row[2])}
+        result.append(task_dict)
+    conn.close()
+    return result
 
 @app.get("/tasks/{id}")
 def get_task(id: int):
     """Return a single task by its id, or 404 if it doesn't exist."""
-    for task in tasks:
-        if task["id"] == id:
-            return task
-    return JSONResponse(status_code=404, content={"error": f"Task {id} not found"})
+    conn = get_connection()   
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM tasks WHERE id = ?", (id,))
+    row = cur.fetchone()
+    if row is None:
+       return JSONResponse(status_code=404, content={"error": f"Task {id} not found"})
+    task_dict = {"id": row[0], "title": row[1], "done": bool(row[2])}
+    conn.close()
+    return task_dict
 
 @app.post("/tasks")
 def create_task(new_task: TaskCreate): #creates a new task
