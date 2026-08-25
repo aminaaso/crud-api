@@ -80,11 +80,15 @@ def create_task(new_task: TaskCreate): #creates a new task
     """Create a new task from the request body."""
     if new_task.title == "":
         return JSONResponse(status_code=400, content={"error": "title is required"})
-    next_id = len(tasks)+1
-    task = {"id": next_id, "title": new_task.title, "done": False}
-    tasks.append(task)
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("INSERT INTO tasks (title, done) VALUES (?, ?)", (new_task.title, 0))
+    new_id = cur.lastrowid
+    conn.commit()
+    task = {"id": new_id, "title": new_task.title, "done": False}
+    conn.close()
     return JSONResponse(status_code=201, content=task)
-
+  
 @app.put("/tasks/{id}")
 def update_task(id: int, updated: TaskUpdate):
     """Update a task's title and/or done status."""
