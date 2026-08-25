@@ -46,7 +46,7 @@ SQLite is serverless and stored in a single file, requiring zero setup and no se
 
 The database lives in tasks.db, created automatically the first time the app runs. It's git-ignored so that anyone cloning this repo starts with a clean database — they'll see the 3 seeded example tasks instead of my leftover test data.
 
-![Database ](screenshots/database.png)
+![Database](screenshots/database.png)
 
 **Query:**
 ```sql
@@ -58,4 +58,3 @@ UPDATE tasks SET done = 1;
 ## Notes
 
 Data is now stored persistently in a SQLite database (tasks.db), not in memory. Restarting the server no longer resets your tasks — they remain exactly as you left them.
-
