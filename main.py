@@ -92,22 +92,37 @@ def create_task(new_task: TaskCreate): #creates a new task
 @app.put("/tasks/{id}")
 def update_task(id: int, updated: TaskUpdate):
     """Update a task's title and/or done status."""
-    for task in tasks:
-        if task["id"] ==id:
-            if updated.title is not None:
-               if updated.title == "":
-                 return JSONResponse(status_code=400, content = {"error": "Title can not be empty"})
-               task["title"] = updated.title
-            if updated.done is not None:
-               task["done"] = updated.done
-            return task
-    return JSONResponse(status_code=404, content={"error": f"Task {id} not found"})
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM tasks WHERE id = ?", (id,))
+    row = cur.fetchone()
+    if row is None:
+        return JSONResponse(status_code=404, content={"error": f"Task {id} not found"})
+    new_title = row[1]          # start with the current title as default
+    if updated.title is not None:
+        if updated.title == "":
+            return JSONResponse(status_code=400, content = {"error": "Title can not be empty"})
+        new_title = updated.title 
+    new_done = row[2]
+    if updated.done is not None:
+        new_done = updated.done
+    cur.execute("UPDATE tasks SET title = ?, done = ? WHERE id = ?", (new_title, new_done, id))
+    conn.commit()
+    task = {"id": id, "title": new_title, "done": bool(new_done)}
+    conn.close()
+    return task
+
 
 @app.delete("/tasks/{id}")
 def delete_task(id: int):
     """Delete a task by id."""
-    for task in tasks:
-        if task["id"] == id:
-            tasks.remove(task)
-            return Response(status_code=204)
-    return JSONResponse(status_code=404, content={"error": f"Task {id} not found"})
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM tasks WHERE id = ?", (id,))
+    row = cur.fetchone()
+    if row is None:
+        return JSONResponse(status_code=404, content={"error": f"Task {id} not found"})
+    cur.execute("DELETE FROM tasks WHERE id = ?", (id,))
+    conn.commit()
+    conn.close()
+    return Response(status_code=204)
